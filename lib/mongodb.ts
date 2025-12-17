@@ -1,14 +1,5 @@
 import mongoose, { Mongoose } from "mongoose";
 
-// Read the MongoDB connection string from environment variables
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env"
-  );
-}
-
 // Define the type for our cached connection
 interface MongooseCache {
   conn: Mongoose | null;
@@ -39,6 +30,15 @@ if (!global.mongooseCache) {
  * @returns Promise resolving to the Mongoose instance
  */
 export async function connectToDatabase(): Promise<Mongoose> {
+  // Validate MONGODB_URI at runtime to avoid breaking static builds
+  const MONGODB_URI = process.env.MONGODB_URI;
+  
+  if (!MONGODB_URI) {
+    throw new Error(
+      "Please define the MONGODB_URI environment variable inside .env"
+    );
+  }
+
   // Return existing connection if available
   if (cached.conn) {
     return cached.conn;
@@ -51,12 +51,20 @@ export async function connectToDatabase(): Promise<Mongoose> {
       bufferCommands: false, // Disable command buffering for better error handling
     };
 
-    // @ts-ignore
-    cached.promise = mongoose.connect(MONGODB_URI, options);
+    cached.promise = mongoose.connect(MONGODB_URI, options).catch((error) => {
+      // Clear the cached promise on failure to allow retry attempts
+      cached.promise = null;
+      throw error;
+    });
   }
 
-  // Wait for connection and cache it
-  cached.conn = await cached.promise;
-
-  return cached.conn;
+  try {
+    // Wait for connection and cache it only on success
+    cached.conn = await cached.promise;
+    return cached.conn;
+  } catch (error) {
+    // Ensure the promise is cleared if it wasn't already
+    cached.promise = null;
+    throw error;
+  }
 }

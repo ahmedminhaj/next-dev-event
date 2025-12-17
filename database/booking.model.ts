@@ -1,7 +1,7 @@
 import { Schema, model, models, Document, Types } from 'mongoose';
 import Event from './event.model';
 
-// TypeScript interface for Booking document
+// TypeScript interface for a Booking document
 export interface IBooking extends Document {
   eventId: Types.ObjectId;
   email: string;

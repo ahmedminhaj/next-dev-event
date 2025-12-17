@@ -120,12 +120,32 @@ EventSchema.pre('save', function (next) {
 
   // Normalize date to ISO format if it's not already
   if (event.isModified('date')) {
-    event.date = normalizeDate(event.date);
+    try {
+      event.date = normalizeDate(event.date);
+    } catch (error) {
+      const validationError = new mongoose.Error.ValidatorError({
+        path: 'date',
+        message: error instanceof Error ? error.message : 'Invalid date format',
+        type: 'user defined',
+        value: event.date,
+      });
+      return next(validationError);
+    }
   }
 
   // Normalize time format (HH:MM)
   if (event.isModified('time')) {
-    event.time = normalizeTime(event.time);
+    try {
+      event.time = normalizeTime(event.time);
+    } catch (error) {
+      const validationError = new mongoose.Error.ValidatorError({
+        path: 'time',
+        message: error instanceof Error ? error.message : 'Invalid time format',
+        type: 'user defined',
+        value: event.time,
+      });
+      return next(validationError);
+    }
   }
 
   next();
@@ -144,14 +164,14 @@ function generateSlug(title: string): string {
 
 // Helper function to normalize date to ISO format
 function normalizeDate(dateString: string): string {
-  const date = new Date(dateString);
+  const date = new Date(dateString + 'T00:00:00Z');
   if (isNaN(date.getTime())) {
     throw new Error('Invalid date format');
   }
   return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
 }
 
-// Helper function to normalize time format
+// Helper function to normalize a time format
 function normalizeTime(timeString: string): string {
   // Handle various time formats and convert to HH:MM (24-hour format)
   const timeRegex = /^(\d{1,2}):(\d{2})(\s*(AM|PM))?$/i;
@@ -178,7 +198,7 @@ function normalizeTime(timeString: string): string {
   return `${hours.toString().padStart(2, '0')}:${minutes}`;
 }
 
-// Create unique index on slug for better performance
+// Create a unique index on slug for better performance
 EventSchema.index({ slug: 1 }, { unique: true });
 
 // Create compound index for common queries
