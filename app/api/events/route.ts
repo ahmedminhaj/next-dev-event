@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
 
     let tags = JSON.parse(formData.get('tags') as string);
     let agenda = JSON.parse(formData.get('agenda') as string);
+    const registration = formData.get('registration') as string;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -34,12 +35,15 @@ export async function POST(req: NextRequest) {
 
     event.image = (uploadResult as {secure_url: string}).secure_url;
 
+    console.log("HELLLLLLLLLLLLLLLLLLLLL---> ", registration);
     const createdEvent = await Event.create({
       ...event,
       tags: tags,
       agenda: agenda,
+      registration: registration,
     });
 
+    console.log("CREATED event: ", createdEvent);
     return NextResponse.json({message: 'Event created', event: createdEvent}, {status: 201});
 
   } catch (e) {

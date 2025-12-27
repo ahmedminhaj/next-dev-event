@@ -270,4 +270,10 @@
             }
         }
     }
+
+    #register-event {
+        button {
+            @apply mt-3 bg-primary hover:bg-primary/90 w-full cursor-pointer items-center justify-center rounded-[6px] px-4 py-2.5 text-lg font-semibold text-black;
+        }
+    }
 }
